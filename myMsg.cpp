@@ -2,10 +2,10 @@
 #include <string>
 
 std::string myMessage::Encapsulation(int type, std::string ss,int id){
-    char flag = '~';
-    char Type_ID,final_TI;
     this->type=type;
     this->clientID=id;
+    char flag = '~';
+    char Type_ID,final_TI;
     if(type>=0&&type<=5){
         Type_ID=type;
         if(type<5){

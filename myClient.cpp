@@ -246,7 +246,7 @@ int main()
     }
 
 //(2)create socket ：声明为全局变量
-        clientSocket = socket(AF_INET,SOCK_STREAM,0);
+    clientSocket = socket(AF_INET,SOCK_STREAM,0);
 //domain:AF_INET:ipv4协议
 //SOCK_STREAM:Tcp连接，提供序列化的、可靠的、双向连接的字节流。支持带外数据传输
 //最后TPPROTO_TCP是默认协议，但是最好不要省略

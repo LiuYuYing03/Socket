@@ -5,9 +5,9 @@
 using namespace std;
  
 #pragma comment(lib, "ws2_32.lib")			//add ws2_32.lib
- 
- 
+
 const int DEFAULT_PORT = 8000;
+
 int main(int argc,char* argv[])
 {
  

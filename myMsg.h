@@ -6,9 +6,10 @@
 
 class myMessage{
     int type;
-    std::string Msg;
-    std::string content;
-    int clientID;//区分服务器和客户端---有一个问题，这个listid是怎么分配的ying
+    std::string Msg;//打包好的message
+    std::string content;//解析后的内容
+    int clientID;//区分服务器和客户端--- 0-server
+    int dst_clientID;
 
 public:
     myMessage(int type,std::string content,int ID){
@@ -21,21 +22,45 @@ public:
         this->content=" ";
         this->clientID=1;
     }
-    std::string Encapsulation(int type, std::string ss,int id);
-    void AnalyzeMsg();
+    myMessage(std::string msg){
+        this->Msg=msg;
+    }
+    std::string Encapsulation(int type, std::string ss,int id);//封装为数据包
+
+    void AnalyzeMsg();//解析数据包
     int getMsgType(){
         return type;
     }
     std::string getMsgContent(){
         return Msg;
     }
-    std::string AnalyzeTime();//分析时
-    void setMsg(std::string ss){
-        Msg=ss;
-    }
+    std::string AnalyzeTime();//分析时间
+    
     std::string getContent(){
         std::string ss=content;
         return ss;
+    }
+    int getClientID(){
+        return clientID;
+    }
+    std::string getMsg(){
+        return Msg;
+    }
+
+    void setMsg(std::string ss){
+        Msg=ss;
+    }
+    void setContent(std::string ss){
+        content=ss;
+    }
+    void setType(int ty){
+        type=ty;
+    }
+    void setClientID(int id){
+        clientID=id;
+    }
+    void setdst_ClientID(int id){
+        dst_clientID=id;
     }
     clientList AnalyzeList();//返回列表
 
