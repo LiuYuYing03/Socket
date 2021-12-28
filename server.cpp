@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include "server.h"
-
+#include "myMsg.h"
 
 int main(void)
 {
@@ -95,6 +95,8 @@ int main(void)
         newClient.client_socket=ClientSocket;
 
         newClient.index = InsertClient(newClient);
+        newClient.clientID = newClient.index;
+        ClientList[newClient.index]=newClient;
         std::cout<<"ip="<<newClient.ip_addr<<":"<<newClient.ip_port<<std::endl;
 
         pthread_t thread;

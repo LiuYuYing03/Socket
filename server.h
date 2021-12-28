@@ -14,6 +14,7 @@
 #include <vector>
 #include <time.h>
 #include "myMsg.h"
+#include "myMsg.cpp"
 
 
 // Need to link with Ws2_32.lib
@@ -74,8 +75,12 @@ std::string getClientList()
     std::string res;
     for(int i=0;i<CLIENT_MAX_NUM;i++)
     if(hasClient[i]==1){
-        sprintf(buf,"ip=%s,port=%d,clientID=%d\n",ClientList[i].ip_addr,ClientList[i].ip_port,ClientList[i].clientID);
+        std::string s=ClientList[i].ip_addr;
+        //char *p=s.data();
+        const char *p=s.c_str();
+        sprintf(buf,"ip=%s,port=%d,clientID=%d\n",p,ClientList[i].ip_port,ClientList[i].clientID);
         res=res+std::string(buf);
+        printf("%s",p);
     }
     return res;
 }
@@ -84,16 +89,23 @@ std:: string ProcessRequest(std::string request,Client newClient)
     myMessage mes(request);
     mes.AnalyzeMsg();
     myMessage reply;
+    std::string tt,temp;
+    int n;
     switch (mes.getMsgType())
     {
         case 0:
             break;
         case 1:
-            reply.setContent( getLocalTime() );
+            temp=getLocalTime();
+            n=reply.getClientID();
+            tt=std::to_string(n);
+            temp=temp+"  client num:"+tt;
+            reply.setContent( temp );
             reply.setType(1);
             break;
         case 2:
-            reply.setContent("Server Name\n");
+            //reply.setContent("The server name is Liu and Zhao\n");
+            reply.setContent("This is Liua and Zhao");
             reply.setType(2);
             break;
         case 3:
@@ -112,6 +124,7 @@ std:: string ProcessRequest(std::string request,Client newClient)
     }
     reply.setClientID(newClient.clientID);
     reply.Encapsulation(reply.getMsgType(), reply.getContent(), reply.getClientID() );
+    std::cout<<reply.getContent() << std::endl;
     send(newClient.client_socket, reply.getMsg().c_str(), reply.getMsg().size(), 0);
 }
 void* ThreadRun(void* arg)
@@ -128,13 +141,14 @@ void* ThreadRun(void* arg)
         iResult = recv(newClient.client_socket, recvbuf, recvbuflen, 0);
         if(iResult>0){
             std::string request=recvbuf;
+            //切换线程时这部分会有bug，还有就是id不对
             reply=ProcessRequest(request, newClient);
-            iSendResult = send(newClient.client_socket, reply.c_str(), reply.length(), 0);
-            if (iSendResult == SOCKET_ERROR)
-            {
-                printf("send failed with error: %d\n", WSAGetLastError());
-                break ;
-            }
+            //iSendResult = send(newClient.client_socket, reply.c_str(), reply.length(), 0);
+            // if (iSendResult == SOCKET_ERROR)
+            // {
+            //     printf("send failed with error: %d\n", WSAGetLastError());
+            //     break ;
+            // }
         }
         else if(iResult==0){
             std::cout<<"The client's connection closing..."<<std::endl;
@@ -156,7 +170,7 @@ void* ThreadRun(void* arg)
     WSACleanup();
 
     pthread_exit(NULL);
-    return ;
+    //return ;
 }
 
 #endif // SERVER_H
