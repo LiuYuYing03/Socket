@@ -8,12 +8,6 @@ std::string myMessage::Encapsulation(int type, std::string ss,int id){
     char Type_ID,final_TI;
     if(type>=0&&type<=5){
         Type_ID=type;
-        if(type<5){
-            this->content=" ";
-        }
-        else{
-            this->content=ss;
-        }
     }
     else{
         Type_ID=7;
@@ -21,7 +15,7 @@ std::string myMessage::Encapsulation(int type, std::string ss,int id){
     }
     Type_ID=Type_ID<<5;
     if(id>=0&&id<=31){
-        final_TI=Type_ID&(char)id;
+        final_TI=(Type_ID|(char)id);
     }
     else{
         final_TI=Type_ID;

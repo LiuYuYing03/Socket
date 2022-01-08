@@ -15,6 +15,7 @@ public:
     myMessage(int type,std::string content,int ID){
         this->type=type;
         this->content=content;
+        this->Msg=content;
         this->clientID=ID;
     }
     myMessage(){

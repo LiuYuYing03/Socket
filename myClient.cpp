@@ -66,9 +66,9 @@ int connect2Server(){
 
     //send a package for connecting successfully
     //暂定，待修改
-    myMessage pack = myMessage(0," ",1); //connect
-    string pstr = pack.Encapsulation(0," ",1); //
-    send(clientSocket,pstr.c_str(), pstr.size(), 0);
+    // myMessage pack = myMessage(0," ",1); //connect
+    // string pstr = pack.Encapsulation(0," ",1); //
+    // send(clientSocket,pstr.c_str(), pstr.size(), 0);
     return 0;
 
 }
@@ -96,11 +96,21 @@ void closeClient(){
 void request2Server(int operation){
 
     //将request信息装包
-    myMessage pack = myMessage(operation-2," ",1); 
-    string pstr = pack.Encapsulation(operation-2," ",1); 
+    string packMessage;
+    if(operation==3){
+        packMessage="time";
+    }
+    else if(operation == 4){
+       // packMessage="request name";
+       packMessage="ask for server name";
+    }
+    else if(operation == 5){
+        packMessage ="request client list";
+    }
+
+    myMessage pack = myMessage(operation-2,packMessage,1); 
+    string pstr = pack.Encapsulation(operation-2,"request for the server",1); 
     send(clientSocket, pstr.c_str(), pstr.size(), 0);
-
-
     while(waitingStatus){
 
     };
@@ -111,12 +121,14 @@ void request2Server(int operation){
         cout<<"ERROR!Create pthread failed!"<<endl;
         return;
     }
+    //cout<<"sssss"<<endl;
     pthread_join(myThread,NULL);
+    //cout<<"ttttt";
     //
     while(true){
         pthread_mutex_lock(&mutex);
-        if(waitingStatus){
-            releWaitState();//代表已经接收到消息了
+        if(!waitingStatus){
+            //releWaitState();//代表已经接收到消息了
             pthread_mutex_unlock(&mutex);
             break;
         }
@@ -145,13 +157,17 @@ void send2Server(){
 
     };
     setWaitState();//wait4Msg==true
+    cout<<"xxxx";
     int ret = pthread_create(&myThread, NULL,recieveMsg,&clientSocket);
+    cout<<"yyyy";
     if(ret !=0){
         cout<<"ERROR!Create pthread failed!"<<endl;
         return;
     }
+    //cout<<"ssss";
     pthread_join(myThread,NULL);
     //不断地等recieve处理完消息
+    cout<<"ttttt";
     while(true){
         pthread_mutex_lock(&mutex);
         if(waitingStatus){
@@ -159,6 +175,7 @@ void send2Server(){
             break;
         }
         pthread_mutex_unlock(&mutex);//实现访问alreadyRsv时操作互斥
+        cout<<"jump out";
     }
 }
 
@@ -170,11 +187,13 @@ void * recieveMsg(void *args){
         if(ret==SOCKET_ERROR || ret==0){
             continue;
         }
+       // system("pause");
         //解析字符串
         int no,port_num;
         string ip;
         string pstr =recvBuf;
-        myMessage raw = myMessage(0,"Msg",1); ;
+        myMessage raw;
+        raw.setMsg(pstr);
         raw.AnalyzeMsg();
         string tString;
         int type=raw.getMsgType();
@@ -184,15 +203,18 @@ void * recieveMsg(void *args){
         }
         if(type==1){
             //处理时间响应
-            tString = raw.AnalyzeTime();
+            tString = raw.getContent();
             cout<<"Current Server time is:"<<tString<<endl;
             releWaitState();//代表已经接收到消息了
+            break;
         }
         else if(type==2){
             //处理获取客户端名称
             tString = raw.getContent();
-            cout<<"Current client name is:"<<tString<<endl;
+            //cout<<"Current client name is:"<<tString<<endl;
+            cout<<tString<<endl;
             releWaitState();
+            break;
         }
         else if(type==3){
             //处理获取客户端列表:编号、IP地址、端口
@@ -201,21 +223,27 @@ void * recieveMsg(void *args){
             no = st.no;
             ip = st.ip;
             port_num = st.port_num;
-            cout << "Current client is no "<<no<<" ip address is "<<ip<<" port number is "<<port_num<<endl;
+            cout << "Current clientList is"<<endl;
+            cout <<raw.getContent() <<endl;
             releWaitState();
+            break;
         }
         else if(type==5){
             //处理获取客户端
             tString = raw.getContent();
             cout<< "Receive sending reply!content is "<<tString <<endl;
             releWaitState();
+            break;
         }
         else if(type==0){
             cout<< "Connect successfully!"<<endl;
+            break;
         }
 
     }
-    
+    cout << "goend";
+    //pthread_exit((void*)2);
+    return args;
 }
 
 
@@ -285,7 +313,11 @@ int main()
             closeClient();
         }
         else if(op==3||op==4||op==5){
-            request2Server(op);
+            for(int i=0;i<1;i++){
+                cout<<"try send"<<i<<" times"<<endl;
+                request2Server(op);
+            }
+            
         }
         else if(op==6){
             send2Server();
