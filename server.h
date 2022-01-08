@@ -14,6 +14,7 @@
 #include <vector>
 #include <time.h>
 #include "myMsg.h"
+#include "myMsg.cpp"
 
 
 // Need to link with Ws2_32.lib
@@ -112,11 +113,13 @@ std:: string ProcessRequest(std::string request,Client newClient)
     }
     reply.setClientID(newClient.clientID);
     reply.Encapsulation(reply.getMsgType(), reply.getContent(), reply.getClientID() );
-    send(newClient.client_socket, reply.getMsg().c_str(), reply.getMsg().size(), 0);
+    return reply.getMsg();
+    //send(newClient.client_socket, reply.getMsg().c_str(), reply.getMsg().size(), 0);
 }
 void* ThreadRun(void* arg)
 {
     pthread_detach(pthread_self()); 
+    
     char recvbuf[DEFAULT_BUFLEN];
     int recvbuflen = DEFAULT_BUFLEN;
     Client newClient=*(struct Client*)arg;
@@ -126,8 +129,10 @@ void* ThreadRun(void* arg)
     std::string reply;
     while(true){
         iResult = recv(newClient.client_socket, recvbuf, recvbuflen, 0);
+        
         if(iResult>0){
             std::string request=recvbuf;
+            std::cout<<request<<std::endl;
             reply=ProcessRequest(request, newClient);
             iSendResult = send(newClient.client_socket, reply.c_str(), reply.length(), 0);
             if (iSendResult == SOCKET_ERROR)
@@ -156,7 +161,7 @@ void* ThreadRun(void* arg)
     WSACleanup();
 
     pthread_exit(NULL);
-    return ;
+    return NULL;
 }
 
 #endif // SERVER_H
