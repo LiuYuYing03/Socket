@@ -29,6 +29,8 @@ std::string myMessage::Encapsulation(int type, std::string ss,int id){
 
 void myMessage::AnalyzeMsg(){
     int length=Msg.length();
+    //std::cout<<length<<std::endl;
+    //std::cout<<Msg<<std::endl;
     std::string temp=Msg.substr(2,length-3);
     content=temp;
     char T_I=Msg[1];

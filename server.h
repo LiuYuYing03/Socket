@@ -16,7 +16,6 @@
 #include "myMsg.h"
 #include "myMsg.cpp"
 
-
 // Need to link with Ws2_32.lib
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -36,22 +35,23 @@ int hasClient[CLIENT_MAX_NUM];
 Client ClientList[CLIENT_MAX_NUM];
 
 pthread_mutex_t client_mutex;
-int ClientNum=0;
-
+int ClientNum = 0;
 
 int InsertClient(Client newClient)
 {
-    while(ClientNum>CLIENT_MAX_NUM);
+    while (ClientNum > CLIENT_MAX_NUM)
+        ;
     pthread_mutex_lock(&client_mutex);
     ClientNum++;
-    int insert_index=-1;
-    for(int i=0;i<CLIENT_MAX_NUM;i++)
-        if(hasClient[i]==0){
-            insert_index=i;
+    int insert_index = -1;
+    for (int i = 0; i < CLIENT_MAX_NUM; i++)
+        if (hasClient[i] == 0)
+        {
+            insert_index = i;
             break;
         }
-    hasClient[insert_index]=1;
-    ClientList[insert_index]=newClient;
+    hasClient[insert_index] = 1;
+    ClientList[insert_index] = newClient;
     pthread_mutex_unlock(&client_mutex);
     return insert_index;
 }
@@ -59,10 +59,19 @@ void DeleteClient(Client oldClient)
 {
     pthread_mutex_lock(&client_mutex);
     ClientNum--;
-    hasClient[oldClient.index]=0;
+    hasClient[oldClient.index] = 0;
     pthread_mutex_unlock(&client_mutex);
 }
-std:: string getLocalTime()
+int isInClientList(int id)
+{
+    for (int i = 0; i < CLIENT_MAX_NUM; i++)
+        if (hasClient[i] && ClientList[i].clientID == id)
+        {
+            return 1;
+        }
+    return 0;
+}
+std::string getLocalTime()
 {
     time_t t = time(nullptr);
     char buf[128] = {0};
@@ -73,43 +82,46 @@ std::string getClientList()
 {
     char buf[DEFAULT_BUFLEN];
     std::string res;
-    for(int i=0;i<CLIENT_MAX_NUM;i++)
-    if(hasClient[i]==1){
-        std::string s=ClientList[i].ip_addr;
-        //char *p=s.data();
-        const char *p=s.c_str();
-        sprintf(buf,"ip=%s,port=%d,clientID=%d\n",p,ClientList[i].ip_port,ClientList[i].clientID);
-        res=res+std::string(buf);
-        printf("%s",p);
-    }
+    for (int i = 0; i < CLIENT_MAX_NUM; i++)
+        if (hasClient[i] == 1)
+        {
+            std::string s = ClientList[i].ip_addr;
+            // char *p=s.data();
+            const char *p = s.c_str();
+            sprintf(buf, "ip=%s,port=%d,clientID=%d\n", p, ClientList[i].ip_port, ClientList[i].clientID);
+            res = res + std::string(buf);
+            printf("%s", p);
+        }
     return res;
 }
-std:: string ProcessRequest(std::string request,Client newClient)
+std::string ProcessRequest(std::string request, Client newClient)
 {
     myMessage mes(request);
     mes.AnalyzeMsg();
     myMessage reply;
-    std::string tt,temp;
+    reply.setClientID(newClient.clientID);
+    std::string tt, temp;
     int n;
+//    std::cout << "****" << mes.getContent() << std::endl;
     switch (mes.getMsgType())
     {
         case 0:
             break;
         case 1:
-            temp=getLocalTime();
-            n=reply.getClientID();
-            tt=std::to_string(n);
-            temp=temp+"  client num:"+tt;
-            reply.setContent( temp );
+            temp = getLocalTime();
+            n = reply.getClientID();
+            tt = std::to_string(n);
+            temp = temp + "  client num:" + tt;
+            reply.setContent(temp);
             reply.setType(1);
             break;
         case 2:
-            //reply.setContent("The server name is Liu and Zhao\n");
+            // reply.setContent("The server name is Liu and Zhao\n");
             reply.setContent("This is Liua and Zhao");
             reply.setType(2);
             break;
         case 3:
-            reply.setContent( getClientList() );
+            reply.setContent(getClientList());
             reply.setType(3);
             break;
         case 4:
@@ -119,60 +131,94 @@ std:: string ProcessRequest(std::string request,Client newClient)
             reply.setContent("Disconnect....\n");
             reply.setType(4);
             break;
-        default:
+        case -3:
+            int dst_clientID = mes.getdst_ClientID();
+            std::cout << "******"<<std::endl;
+            if (isInClientList(dst_clientID) == 0)
+            {
+                reply.setContent("The destination client doesn't exist");
+                reply.setType(5);
+            }
+            else
+            {
+                int iSendResult;
+                Client dst_client = ClientList[dst_clientID];
+                myMessage sendTo;
+                sendTo.setClientID(dst_client.clientID);
+                sendTo.setContent(mes.getContent());
+                sendTo.setType(5);
+                sendTo.Encapsulation(sendTo.getMsgType(), sendTo.getContent(), sendTo.getClientID());
+                iSendResult = send(dst_client.client_socket, sendTo.getMsg().c_str(), sendTo.getMsg().size(), 0);
+                if (iSendResult == SOCKET_ERROR)
+                {
+                    reply.setContent("send failed");
+                    printf("send failed with error: %d\n", WSAGetLastError());
+                }
+                else
+                {
+                    reply.setContent("Send Successfully");
+                }
+                reply.setType(5);
+            }
             break;
     }
     reply.setClientID(newClient.clientID);
-    reply.Encapsulation(reply.getMsgType(), reply.getContent(), reply.getClientID() );
-    std::cout<<reply.getContent() << std::endl;
+    reply.Encapsulation(reply.getMsgType(), reply.getContent(), reply.getClientID());
+    std::cout << reply.getContent() << std::endl;
     send(newClient.client_socket, reply.getMsg().c_str(), reply.getMsg().size(), 0);
+    return reply.getMsg();
 }
-void* ThreadRun(void* arg)
+void *ThreadRun(void *arg)
 {
-    pthread_detach(pthread_self()); 
-    
+    pthread_detach(pthread_self());
+
     char recvbuf[DEFAULT_BUFLEN];
     int recvbuflen = DEFAULT_BUFLEN;
-    Client newClient=*(struct Client*)arg;
+    Client newClient = *(struct Client *)arg;
     int iResult;
     int iSendResult;
 
     std::string reply;
-    while(true){
+    while (true)
+    {
         iResult = recv(newClient.client_socket, recvbuf, recvbuflen, 0);
-        
-        if(iResult>0){
-            std::string request=recvbuf;
+
+        if (iResult > 0)
+        {
+            std::string request = recvbuf;
             //切换线程时这部分会有bug，还有就是id不对
-            reply=ProcessRequest(request, newClient);
-            //iSendResult = send(newClient.client_socket, reply.c_str(), reply.length(), 0);
-            // if (iSendResult == SOCKET_ERROR)
-            // {
-            //     printf("send failed with error: %d\n", WSAGetLastError());
-            //     break ;
-            // }
+            reply = ProcessRequest(request, newClient);
+            // iSendResult = send(newClient.client_socket, reply.c_str(), reply.length(), 0);
+            //  if (iSendResult == SOCKET_ERROR)
+            //  {
+            //      printf("send failed with error: %d\n", WSAGetLastError());
+            //      break ;
+            //  }
         }
-        else if(iResult==0){
-            std::cout<<"The client's connection closing..."<<std::endl;
+        else if (iResult == 0)
+        {
+            std::cout << "The client's connection closing..." << std::endl;
             std::cout << "ip=" << newClient.ip_addr << ":" << newClient.ip_port << std::endl;
             DeleteClient(newClient);
             break;
         }
-        else{
+        else
+        {
             printf("recv failed with error: %d\n", WSAGetLastError());
-            break ;
+            break;
         }
     }
     // shutdown the connection since we're done
     iResult = shutdown(newClient.client_socket, SD_SEND);
-    if (iResult == SOCKET_ERROR){
+    if (iResult == SOCKET_ERROR)
+    {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
     }
     closesocket(newClient.client_socket);
     WSACleanup();
 
     pthread_exit(NULL);
-    //return ;
+    return 0;
 }
 
 #endif // SERVER_H

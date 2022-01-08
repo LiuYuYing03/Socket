@@ -146,7 +146,7 @@ void send2Server(){
     cin >> list_id;
     cout << "Please enter your message to send:"<<endl;
     cin >> Msg;//看看读的对不对
-    
+    cout << Msg;
     //组装Msg
     myMessage pack = myMessage(5,Msg,list_id); 
     string pstr = pack.Encapsulation(5,Msg,list_id); 

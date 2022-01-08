@@ -63,6 +63,10 @@ public:
     void setdst_ClientID(int id){
         dst_clientID=id;
     }
+    int  getdst_ClientID()
+    {
+        return dst_clientID;
+    }
     clientList AnalyzeList();//返回列表
 
 };
